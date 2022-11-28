@@ -1,3 +1,4 @@
 javac -cp ./ -d ./ DatabaseInterface.java
-jar cfmv DatabaseInterface.jar Manifest.txt DatabaseInterface.class
+javac -cp ./ -d ./ RentalObject.java
+jar cfmv DatabaseInterface.jar Manifest.txt DatabaseInterface.class RentalObject.class
 java -jar DatabaseInterface.jar

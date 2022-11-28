@@ -8,6 +8,7 @@ import java.util.function.Function;
 
 import javax.swing.JTable.PrintMode;
 import javax.xml.namespace.QName;
+import javax.xml.transform.Result;
 
 public class DatabaseInterface {
     public static void main(String[] args) {
@@ -102,13 +103,14 @@ public class DatabaseInterface {
     }
 
     public static void PrintManagementMenu() {
-        System.out.println("\nEnter a Management Option[1-6]:");
+        System.out.println("\nEnter a Management Option[1-7]:");
         System.out.println(" [1]: Move Car To Different Location");
         System.out.println(" [2]: Create New Discount Group");
         System.out.println(" [3]: View all Charges");
         System.out.println(" [4]: Add Car to Location");
         System.out.println(" [5]: Print All Customers");
-        System.out.println(" [6]: Quit");
+        System.out.println(" [6]: Print all Rentals");
+        System.out.println(" [7]: Quit");
     }
 
     public static void PrintEmployeeMenu() {
@@ -131,7 +133,7 @@ public class DatabaseInterface {
         boolean inManagementMenu = true;
         while (inManagementMenu) {
             PrintManagementMenu();
-            String line = RegexChecker(in, "[1-6]", "Please enter a number between 1-6");
+            String line = RegexChecker(in, "[1-7]", "Please enter a number between 1-7");
             switch (line) {
                 case "1":
                     System.out.println("Printing list of locations...");
@@ -175,6 +177,9 @@ public class DatabaseInterface {
                     listCustomers(in, s);
                     break;
                 case "6":
+                    listRentals(in, s);
+                    break;
+                case "7":
                     inManagementMenu = false;
                     break;
             }
@@ -252,10 +257,11 @@ public class DatabaseInterface {
 
     public static List listCars(Scanner in, Statement s, int location_id) {
         try {
-            String q = String.format("select * from vehicle_data where location_id = %d", location_id);
+            String q = String.format(
+                    "select * from vehicle_data where location_id = %d and vehicle_id not in (select vehicle_id from rentals) and vehicle_id not in (select vehicle_id from reservations)",
+                    location_id);
             ResultSet cars;
 
-            System.out.println(q);
             cars = s.executeQuery(q);
             if (!cars.next()) {
                 System.out.println("There are currently no vehicles registered");
@@ -302,6 +308,38 @@ public class DatabaseInterface {
             return new ArrayList<>();
         }
         return new ArrayList<>();
+    }
+
+    public static List listRentals(Scanner in, Statement s) {
+        try {
+            String q = "select *"
+                    + " from rentals"
+                    + " join customers on rentals.customer_id = customers.customer_id"
+                    + " join locations on rentals.location_id = locations.location_id"
+                    + " join vehicle_data on vehicle_data.vehicle_id = rentals.vehicle_id";
+            ResultSet rentals = s.executeQuery(q);
+            if (!rentals.next()) {
+                System.out.println("There are currently no rentals");
+                return new ArrayList<>();
+            }
+
+            System.out.println(
+                    String.format("%-20s%-40s%-20s%-20s%-12s%-12s", "Name", "Address", "Make", "Model", "Start",
+                            "End"));
+            List rentalList = new ArrayList<>();
+            do {
+                System.out.println(String.format("%-20s%-40s%-20s%-20s%-12s%-12s", rentals.getString("name"),
+                        rentals.getString("address"), rentals.getString("make"), rentals.getString("model"),
+                        rentals.getString("rental_start_date"), rentals.getString("rental_end_date")));
+                rentalList.add(new RentalObject(rentals.getInt("customer_id"), rentals.getInt("location_id"),
+                        rentals.getInt("vehicle_id")));
+            } while (rentals.next());
+            return rentalList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("There was an error with listing all current rentals");
+            return new ArrayList<>();
+        }
     }
 
     public static void moveCar(Statement s, int vehicle_id, int secondLocation) {
@@ -472,7 +510,7 @@ public class DatabaseInterface {
 
         try {
             String q = String.format(
-                    "insert into vehicle_Data(location_id,make,model,type,odometer) values (%d,\'%s\',\'%s\',\'%s\',\'%s\'); commit;",
+                    "insert into vehicle_Data(location_id,make,model,type,odometer) values (%d,\'%s\',\'%s\',\'%s\',\'%s\')",
                     locationId,
                     make,
                     model, type, odometer);
@@ -505,7 +543,7 @@ public class DatabaseInterface {
             String liscenseNumber = RegexChecker(in, "^[0-9]{8}$", "Please enter an 8 digit number");
 
             String q = String.format(
-                    "insert into customers(name,address,drivers_liscense) values (\'%s\',\'%s\',\'%s\'); commit;", name,
+                    "insert into customers(name,address,drivers_liscense) values (\'%s\',\'%s\',\'%s\')", name,
                     address,
                     liscenseNumber);
             s.executeQuery(q);
@@ -519,8 +557,10 @@ public class DatabaseInterface {
     public static void createRental(Scanner in, Statement s) {
         System.out.println("Is the customer a returning customer? (y or n)");
         String returingCustomer = RegexChecker(in, "^[yn]{1}$", "Please enter y or n");
-        if (returingCustomer == "n")
+
+        if (returingCustomer.equals("n"))
             addCustomer(in, s);
+
         List customerIds = listCustomers(in, s);
 
         System.out.println("Please enter the id of the returing user");
@@ -532,9 +572,9 @@ public class DatabaseInterface {
         List vehicleIds = new ArrayList<>();
         while (selectingLocations) {
             List locationIds = listLocations(in, s);
+            System.out.println("Please enter the id of the starting location");
             locationId = LoopChecker(in, "[0-9]+", "Please enter a number", locationIds,
                     "Please enter a number from the list of locations");
-            System.out.println("Please enter the id of the starting location");
             vehicleIds = listCars(in, s, locationId);
             if (vehicleIds.size() == 0)
                 System.out.print("No cars are present at this location, please select another");
@@ -555,7 +595,7 @@ public class DatabaseInterface {
                 "Please enter the date in the format of dd/mm/yy");
 
         try {
-            String q = String.format("insert into rental values (%d,%d,%d,\'%s\',\'%s\'); commit;", customerId,
+            String q = String.format("insert into rentals values (%d,%d,%d,\'%s\',\'%s\')", customerId,
                     vehicleId, locationId, startDate, endDate);
             s.executeQuery(q);
             System.out.println("Rental Added");
@@ -565,4 +605,6 @@ public class DatabaseInterface {
         }
 
     }
+
+    // public static void returnRental()
 }
