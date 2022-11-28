@@ -324,14 +324,17 @@ public class DatabaseInterface {
             }
 
             System.out.println(
-                    String.format("%-20s%-40s%-20s%-20s%-12s%-12s", "Name", "Address", "Make", "Model", "Start",
+                    String.format("%-5s%-20s%-40s%-20s%-20s%-12s%-12s", "id", "Name", "Address", "Make", "Model",
+                            "Start",
                             "End"));
-            List rentalList = new ArrayList<>();
+            List<RentalObject> rentalList = new ArrayList<>();
+            int index = 0;
             do {
-                System.out.println(String.format("%-20s%-40s%-20s%-20s%-12s%-12s", rentals.getString("name"),
+                System.out.println(String.format("%-20s%-40s%-20s%-20s%-12s%-12s", index, rentals.getString("name"),
                         rentals.getString("address"), rentals.getString("make"), rentals.getString("model"),
                         rentals.getString("rental_start_date"), rentals.getString("rental_end_date")));
-                rentalList.add(new RentalObject(rentals.getInt("customer_id"), rentals.getInt("location_id"),
+
+                rentalList.add(new RentalObject(index++, rentals.getInt("customer_id"), rentals.getInt("location_id"),
                         rentals.getInt("vehicle_id")));
             } while (rentals.next());
             return rentalList;
@@ -399,8 +402,6 @@ public class DatabaseInterface {
 
     public static void viewAllCharges(Scanner in, Statement s) {
         try {
-            List customerCharges = new ArrayList<>();
-
             boolean viewingCharges = true;
             int viewingOption = 0;
             while (viewingCharges) {
@@ -606,5 +607,26 @@ public class DatabaseInterface {
 
     }
 
-    // public static void returnRental()
+    public static void returnRental(Scanner in, Statement s) {
+        System.out.println("Please Enter the id of the rental you would like to return");
+        List<RentalObject> rentals = listRentals(in, s);
+        boolean choosingRental = true;
+        int rentalId = 0;
+        RentalObject rental = new RentalObject();
+        while (choosingRental) {
+            rentalId = Integer.parseInt(RegexChecker(in, "[0-9]+", "Please enter a number"));
+            for (RentalObject rentalObject : rentals) {
+                if (rentalObject.id == rentalId) {
+                    choosingRental = false;
+                    rental = rentalObject;
+                }
+            }
+            if (choosingRental)
+                System.out.println("Please enter an Id from the list of rentals");
+        }
+
+        // remove from list
+        // add to customer charges
+        // ask about adding additional charges
+    }
 }
