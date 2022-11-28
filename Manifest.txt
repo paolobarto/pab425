@@ -1,0 +1,2 @@
+Main-class: DatabaseInterface
+Class-path: ojdbc8.jar
