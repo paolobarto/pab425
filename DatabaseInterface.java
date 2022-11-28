@@ -105,7 +105,7 @@ public class DatabaseInterface {
         System.out.println("\nEnter a Management Option[1-5]:");
         System.out.println(" [1]: Move Car To Different Location");
         System.out.println(" [2]: Create New Discount Group");
-        System.out.println(" [3]: Add new Charge");
+        System.out.println(" [3]: View all Charges");
         System.out.println(" [4]: Add Car to Location");
         System.out.println(" [5]: Quit");
     }
@@ -153,14 +153,13 @@ public class DatabaseInterface {
                             System.out.println("Please enter one of the ids in the list.");
                     }
 
-                    System.out.println("\n Please enter the id of the car you would like to move");
                     List carIds = listCars(in, s, id);
+                    System.out.println("\n Please enter the id of the car you would like to move");
                     int carId = LoopChecker(in, "[0-9]+", "Please enter a number", carIds,
                             "Please enter an id from the list of cars");
                     moveCar(s, carId, secondId);
                     break;
                 case "2":
-                    System.out.println("Please enter the name of the new Discount Group");
                     createDiscountGroup(in, s);
                     break;
                 case "3":
@@ -306,6 +305,7 @@ public class DatabaseInterface {
 
         try {
             int result = s.executeUpdate(q);
+            System.out.println("\nCar Moved!");
         } catch (Exception e) {
             System.out.println("unable to update car location");
         }
@@ -330,19 +330,20 @@ public class DatabaseInterface {
         System.out.println("Please enter a 4 digit id to denote group");
 
         boolean gettingNumber = true;
+        int groupId = 0;
         while (gettingNumber) {
-            int groupId = Integer.parseInt(RegexChecker(in, "^[0-9]{4}$", "Please enter a 4 digit number"));
+            groupId = Integer.parseInt(RegexChecker(in, "^[0-9]{4}$", "Please enter a 4 digit number"));
             if (ids.contains(groupId))
                 System.out.println("Please enter another group_id, this one currently exists");
             else
                 gettingNumber = false;
         }
-
-        int groupId = Integer.parseInt(RegexChecker(in, "^[0-9]{4}$", "Please enter a 4 digit number"));
+        // int groupId = Integer.parseInt(RegexChecker(in, "^[0-9]{4}$", "Please enter a
+        // 4 digit number"));
         System.out.println("Please enter a number between 1-100 to denote the % discount assoicated with this group");
         String discount = RegexChecker(in, "^[1-9][0-9]?$|^100$", "Please enter a number between 1-100");
         discount += '%';
-        String q = String.format("insert into discounts (group_id,discount) values (%d,\'%s\')", groupId, discount);
+        String q = String.format("insert into discount (group_id,discount) values (%d,\'%s\')", groupId, discount);
         try {
             s.executeQuery(q);
             System.out.println("Discount Added");
@@ -372,6 +373,8 @@ public class DatabaseInterface {
                     viewingCharges = false;
                 else {
                     List ChargeIds = printCharge(s, viewingOption);
+                    if (ChargeIds.size() == 0)
+                        continue;
                     boolean selectingCharge = true;
                     int chargeIdChoice = LoopChecker(in, "[0-9]+", "Please enter a number", ChargeIds,
                             "Please enter a number from the list of charges");
@@ -420,13 +423,13 @@ public class DatabaseInterface {
                 chargeName = "price_per_period";
                 break;
             case 4:
-                tableName = "other_charges";
+                tableName = "other_charge";
                 chargeName = "price_of_charge";
                 break;
         }
 
         try {
-            String q = String.format("select * from %s)", tableName);
+            String q = String.format("select * from %s", tableName);
             ResultSet charges = s.executeQuery(q);
             if (!charges.next()) {
                 System.out.println("There are no Charges of this type");
@@ -449,8 +452,8 @@ public class DatabaseInterface {
     }
 
     public static void addCarToLocation(Scanner in, Statement s) {
-        System.out.println("Please Enter the id of the location to add a car to");
         List locationIDs = listLocations(in, s);
+        System.out.println("Please Enter the id of the location to add a car to");
         int locationId = LoopChecker(in, "[0-9]+", "Please enter a number", locationIDs,
                 "Please enter an Id from the list of locations");
         System.out.println("Please enter the name of the car's make");
@@ -463,7 +466,10 @@ public class DatabaseInterface {
         String odometer = RegexChecker(in, "[0-9]+", "Please enter the number of miles on the car");
 
         try {
-            String q = String.format("insert into vehicle_Data (%d,\'%s\',\'%s\',\'%s\',\'%s\')", locationId, make,
+            String q = String.format(
+                    "insert into vehicle_Data(location_id,make,model,type,odometer) values (%d,\'%s\',\'%s\',\'%s\',\'%s\'); commit;",
+                    locationId,
+                    make,
                     model, type, odometer);
             s.executeQuery(q);
             System.out.println("Car successfully added.");
@@ -477,23 +483,25 @@ public class DatabaseInterface {
     }
 
     public static void addCustomer(Scanner in, Statement s) {
-        System.out.println("Please enter the name of the customer");
-        String name = RegexChecker(in, "[a-zA-Z]+", "Please enter a name as a String of letters only.");
-        System.out.println("Please enter the house number");
-        String houseNumber = RegexChecker(in, "[0-9]+", "Please enter a number");
-        System.out.println("Please enter the street");
-        String street = RegexChecker(in, "[a-zA-Z ]+", "Please enter the Street in words only");
-        System.out.println("Please enter the city");
-        String city = RegexChecker(in, "[a-zA-Z ]+", "Please enter the city in words only");
-        System.out.println("Please enter the State in 2 letters");
-        String state = RegexChecker(in, "^[A-Z}{2}$", "Please enter the State in 2 capital letters");
-
-        String address = houseNumber + " " + street + " " + city + " " + state;
-        System.out.println("Please enter the drivers 8 digit liscense number");
-        String liscenseNumber = RegexChecker(in, "^[0-9]{8}$", "Please enter an 8 digit number");
-
         try {
-            String q = String.format("insert into customers values (\'%s\',\'%s\',\'%s\')", name, address,
+            System.out.println("Please enter the name of the customer");
+            String name = RegexChecker(in, "[a-zA-Z ]+", "Please enter a name as a String of letters only.");
+            System.out.println("Please enter the house number");
+            String houseNumber = RegexChecker(in, "[0-9]+", "Please enter a number");
+            System.out.println("Please enter the street");
+            String street = RegexChecker(in, "[a-zA-Z ]+", "Please enter the Street in words only");
+            System.out.println("Please enter the city");
+            String city = RegexChecker(in, "[a-zA-Z ]+", "Please enter the city in words only");
+            System.out.println("Please enter the State in 2 letters");
+            String state = RegexChecker(in, "^[A-Z]{2}$", "Please enter the State in 2 capital letters");
+
+            String address = houseNumber + " " + street + " " + city + " " + state;
+            System.out.println("Please enter the drivers 8 digit liscense number");
+            String liscenseNumber = RegexChecker(in, "^[0-9]{8}$", "Please enter an 8 digit number");
+
+            String q = String.format(
+                    "insert into customers(name,address,drivers_liscense) values (\'%s\',\'%s\',\'%s\'); commit;", name,
+                    address,
                     liscenseNumber);
             s.executeQuery(q);
             System.out.println("New Customer Successfully added");
