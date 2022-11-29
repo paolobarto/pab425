@@ -99,14 +99,15 @@ public class DatabaseInterface {
     }
 
     public static void PrintManagementMenu() {
-        System.out.println("\nEnter a Management Option[1-7]:");
+        System.out.println("\nEnter a Management Option[1-8]:");
         System.out.println(" [1]: Move Car To Different Location");
         System.out.println(" [2]: Create New Discount Group");
         System.out.println(" [3]: View all Charges");
         System.out.println(" [4]: Add Car to Location");
         System.out.println(" [5]: Print All Customers");
         System.out.println(" [6]: Print all Rentals");
-        System.out.println(" [7]: Quit");
+        System.out.println(" [7]: Print all Reservations");
+        System.out.println(" [8]: Quit");
     }
 
     public static void PrintEmployeeMenu() {
@@ -129,7 +130,7 @@ public class DatabaseInterface {
         boolean inManagementMenu = true;
         while (inManagementMenu) {
             PrintManagementMenu();
-            String line = RegexChecker(in, "[1-7]", "Please enter a number between 1-7");
+            String line = RegexChecker(in, "[1-8]", "Please enter a number between 1-8");
             switch (line) {
                 case "1":
                     System.out.println("Printing list of locations...");
@@ -176,6 +177,9 @@ public class DatabaseInterface {
                     listRentals(in, s);
                     break;
                 case "7":
+                    listReservations(in, s);
+                    break;
+                case "8":
                     inManagementMenu = false;
                     break;
             }
@@ -221,7 +225,7 @@ public class DatabaseInterface {
                     // associate with group
                     break;
                 case "3":
-
+                    makeReservation(in, s);
                     // reserve car
                     break;
                 case "4":
@@ -341,6 +345,43 @@ public class DatabaseInterface {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was an error with listing all current rentals");
+            return new ArrayList<>();
+        }
+    }
+
+    public static List listReservations(Scanner in, Statement s) {
+        try {
+            String q = "select *"
+                    + " from reservations"
+                    + " join customers on reservations.customer_id = customers.customer_id"
+                    + " join locations on reservations.location_id = locations.location_id"
+                    + " join vehicle_data on vehicle_data.vehicle_id = reservations.vehicle_id";
+            ResultSet reservations = s.executeQuery(q);
+            if (!reservations.next()) {
+                System.out.println("There are currently no reservations");
+                return new ArrayList<>();
+            }
+
+            System.out.println(
+                    String.format("%-5s%-20s%-40s%-20s%-20s%-12s", "id", "Name", "Address", "Make", "Model",
+                            "Start"));
+            List<RentalObject> reservationList = new ArrayList<>();
+            int index = 0;
+            do {
+                System.out.println(String.format("%-5d%-20s%-40s%-20s%-20s%-12s", index,
+                        reservations.getString("name"),
+                        reservations.getString("address"), reservations.getString("make"),
+                        reservations.getString("model"),
+                        reservations.getString("reservation_date")));
+
+                reservationList.add(new RentalObject(index++, reservations.getInt("customer_id"),
+                        reservations.getInt("location_id"),
+                        reservations.getInt("vehicle_id")));
+            } while (reservations.next());
+            return reservationList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("There was an error with listing all current reservations");
             return new ArrayList<>();
         }
     }
@@ -789,12 +830,16 @@ public class DatabaseInterface {
         int vehicle_id = LoopChecker(in, "[0-9]+", "Please enter a number", listCars(in, s, locationId),
                 "Please enter an Id from the list of cars");
 
-        System.out.println("Please enter the date of the desired reservation");
+        System.out.println("Please enter the date of the desired reservation (dd/mm/yy)");
         String date = RegexChecker(in, "^([0-2][0-9]||3[0-1])/(0[0-9]||1[0-2])/([0-9][0-9])?[0-9][0-9]$",
                 "Please enter the date in the format of dd/mm/yy");
 
         try {
-
+            String q = String.format("insert into reservations values (%d,%d,%d,\'%s\')", customerId, vehicle_id,
+                    locationId,
+                    date);
+            s.execute(q);
+            System.out.println("Reservation Added!");
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("There was a problem with adding a reservation");
