@@ -1,14 +1,10 @@
 import java.io.*;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.IllegalFormatWidthException;
 import java.util.List;
 import java.util.Scanner;
-import java.util.function.Function;
-
-import javax.swing.JTable.PrintMode;
-import javax.xml.namespace.QName;
-import javax.xml.transform.Result;
 
 public class DatabaseInterface {
     public static void main(String[] args) {
@@ -123,9 +119,9 @@ public class DatabaseInterface {
 
     public static void PrintCustomerMenu() {
         System.out.println("\nEnter an Customer Option[1-4]:");
-        System.out.println(" [1]: Make Reservation");
-        System.out.println(" [2]: View Avalibile Cars");
-        System.out.println(" [3]: Add to discount group");
+        System.out.println(" [1]: View Avalibile Cars");
+        System.out.println(" [2]: Add to discount group");
+        System.out.println(" [3]: Reserve Car");
         System.out.println(" [4]: Quit");
     }
 
@@ -200,6 +196,7 @@ public class DatabaseInterface {
                     createRental(in, s);
                     break;
                 case "3":
+                    returnRental(in, s);
                     // return car
                     break;
                 case "4":
@@ -216,13 +213,16 @@ public class DatabaseInterface {
             String line = RegexChecker(in, "[1-4]", "Please enter a number between 1-4");
             switch (line) {
                 case "1":
-                    // make reservation
+                    printCars(in, s);
+                    // view availible cars
                     break;
                 case "2":
-                    // view avalible cars
+                    addToDiscountGroup(in, s);
+                    // associate with group
                     break;
                 case "3":
-                    // get discount
+
+                    // reserve car
                     break;
                 case "4":
                     inMenu = false;
@@ -330,7 +330,7 @@ public class DatabaseInterface {
             List<RentalObject> rentalList = new ArrayList<>();
             int index = 0;
             do {
-                System.out.println(String.format("%-20s%-40s%-20s%-20s%-12s%-12s", index, rentals.getString("name"),
+                System.out.println(String.format("%-5d%-20s%-40s%-20s%-20s%-12s%-12s", index, rentals.getString("name"),
                         rentals.getString("address"), rentals.getString("make"), rentals.getString("model"),
                         rentals.getString("rental_start_date"), rentals.getString("rental_end_date")));
 
@@ -420,24 +420,25 @@ public class DatabaseInterface {
                     if (ChargeIds.size() == 0)
                         continue;
                     boolean selectingCharge = true;
+                    System.out.println("Please enter the an id from any of the chargeIds");
                     int chargeIdChoice = LoopChecker(in, "[0-9]+", "Please enter a number", ChargeIds,
                             "Please enter a number from the list of charges");
 
                     String q = String.format(
-                            "select * from customer_charges natual join customers where charge_id = %d",
+                            "select * from customer_charges natural join customers where id = %d",
                             chargeIdChoice);
                     ResultSet userCharges = s.executeQuery(q);
                     if (!userCharges.next()) {
                         System.out.println("No Charges were found at that id");
                         return;
                     } else {
-                        System.out.println(String.format("%-20s%-5s%-20s", "Name", "Charge Amount", "Date of Charge"));
+                        System.out.println(String.format("%-30s%-15s%-20s", "Name", "Charge Amount", "Date of Charge"));
                         do {
                             System.out.println(
-                                    String.format("%-20s%-5d%-20s", userCharges.getString("name"),
+                                    String.format("%-30s%-15d%-20s", userCharges.getString("name"),
                                             userCharges.getInt("charge_amount"),
                                             userCharges.getString("Date_of_charge")));
-                        } while (selectingCharge);
+                        } while (userCharges.next());
                     }
                     return;
                 }
@@ -608,8 +609,13 @@ public class DatabaseInterface {
     }
 
     public static void returnRental(Scanner in, Statement s) {
-        System.out.println("Please Enter the id of the rental you would like to return");
         List<RentalObject> rentals = listRentals(in, s);
+        System.out.println("Please Enter the id of the rental you would like to return");
+        if (rentals.size() == 0) {
+            System.out.println("There are currently no Rentals!");
+            return;
+        }
+
         boolean choosingRental = true;
         int rentalId = 0;
         RentalObject rental = new RentalObject();
@@ -625,8 +631,180 @@ public class DatabaseInterface {
                 System.out.println("Please enter an Id from the list of rentals");
         }
 
-        // remove from list
-        // add to customer charges
-        // ask about adding additional charges
+        System.out.println("Please enter the id of the location the car is returned to");
+        int newLocationId = LoopChecker(in, "[0-9]+", "Please enter a number", listLocations(in, s),
+                "Please select an id from the list");
+
+        try {
+            String q = String.format(
+                    "delete from rentals where customer_id=%d and location_id = %d and vehicle_id = %d",
+                    rental.customer_id, rental.location_id, rental.vehicle_id);
+            s.execute(q);
+            q = String.format("update vehicle_data set location_id = %d where vehicle_id = %d", newLocationId,
+                    rental.vehicle_id);
+            s.execute(q);
+            System.out.println("Rental Returned!");
+
+            System.out.println("What is the total price of just the car rental");
+            int price = Integer.parseInt(RegexChecker(in, "[0-9]+", "Please enter a number"));
+            System.out.println("How is the customer paying today? (card, cash, check)");
+            String payMethod = RegexChecker(in, "card|cash|check", "Please only enter the values (card cash check)");
+
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yy");
+            LocalDateTime now = LocalDateTime.now();
+            String date = dtf.format(now);
+
+            q = String.format(
+                    "insert into customer_charges(customer_id,charge_amount,charge_period,date_of_charge,payment_method) values(%d,%d,1,\'%s\',\'%s\')",
+                    rental.customer_id, price, date, payMethod);
+            s.execute(q);
+            System.out.println("Added Charge to record.");
+
+            System.out.println("Would you like to add additional charges? (y or n)");
+
+            if (RegexChecker(in, "y|n", "Please enter y or n only").equals("n"))
+                return;
+
+            boolean addingCharge = true;
+            while (addingCharge) {
+                System.out.println(" [1]: Fuel Charges");
+                System.out.println(" [2]: Location Charges");
+                System.out.println(" [3]: Insurance Charges");
+                System.out.println(" [4]: Other Charges");
+                System.out.println(" [5]: Quit");
+
+                int chargeChoice = Integer.parseInt(RegexChecker(in, "[1-5]", "Please enter a number between 1-5"));
+
+                String tableName = "";
+                String chargeName = "";
+                switch (chargeChoice) {
+                    case 1:
+                        tableName = "fuel_charge";
+                        chargeName = "price_per_gallon";
+                        break;
+                    case 2:
+                        tableName = "Location_charge";
+                        chargeName = "price_per_mile";
+                        break;
+                    case 3:
+                        tableName = "Insurance_Charge";
+                        chargeName = "price_per_period";
+                        break;
+                    case 4:
+                        tableName = "other_charge";
+                        chargeName = "price_of_charge";
+                        break;
+                    case 5:
+                        addingCharge = false;
+                        return;
+                }
+
+                System.out.println("What was the " + chargeName + "?");
+                int chargeAmount = Integer.parseInt(RegexChecker(in, "[0-9]+", "Please enter a number"));
+                q = String.format(
+                        "insert into customer_charges(customer_id,charge_amount,charge_period,date_of_charge,payment_method) values(%d,%d,1,\'%s\',\'%s\')",
+                        rental.customer_id, chargeAmount, date, payMethod);
+                s.execute(q);
+
+                q = String.format(
+                        "select max(id) as charge_id from customer_charges where customer_id = %d and charge_amount = %d and"
+                                + " date_of_charge = \'%s\' and payment_method=\'%s\'",
+                        rental.customer_id, chargeAmount, date, payMethod);
+
+                ResultSet chargeResult = s.executeQuery(q);
+                if (!chargeResult.next()) {
+                    System.out.println("There is no charge added");
+                    return;
+                }
+
+                int chargeId = chargeResult.getInt("charge_id");
+
+                q = String.format("insert into %s values(%d,%d)", tableName, chargeId, chargeAmount);
+                s.execute(q);
+                System.out.println("Charge Added!");
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("There was an error returning the rental");
+        }
+    }
+
+    public static void printCars(Scanner in, Statement s) {
+        System.out.println("Please enter the id of the Desired Location");
+        int locationId = LoopChecker(in, "[0-9]+", "Please enter a number", listLocations(in, s),
+                "Please enter an id from an existing location");
+
+        listCars(in, s, locationId);
+    }
+
+    public static void addToDiscountGroup(Scanner in, Statement s) {
+        System.out.println("Are you a pre-existing member? (y or n)");
+        if (RegexChecker(in, "y|n", "Please enter (y or n)").equals("n"))
+            addCustomer(in, s);
+
+        System.out.println("Please enter your own id from the list");
+        int customerId = LoopChecker(in, "[0-9]+", "Please enter a number", listCustomers(in, s),
+                "Please select an id from the list of customers");
+
+        try {
+            String q = "select group_id from discount";
+            ResultSet discounts = s.executeQuery(q);
+            List discountList = new ArrayList<>();
+            while (discounts.next()) {
+                discountList.add(discounts.getInt("group_id"));
+            }
+
+            System.out.println("Please enter a pre-existing 4-digit dicount code");
+            int code = Integer.parseInt(RegexChecker(in, "^[0-9]{4}$", "Please enter a 4 digit number"));
+
+            if (!discountList.contains(code)) {
+                System.out.println("Sorry this discount code does not exist. Try again another time,");
+                return;
+            }
+
+            q = String.format("insert into group_name values (%d,%d)", code, customerId);
+            s.execute(q);
+            System.out.println("Discount Added to profile!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("There was an error retrieving current discounts");
+        }
+    }
+
+    public static void makeReservation(Scanner in, Statement s) {
+        System.out.println("Are you a pre-existing member? (y or n)");
+        if (RegexChecker(in, "y|n", "Please enter (y or n)").equals("n"))
+            addCustomer(in, s);
+
+        System.out.println("Please enter your own id from the list");
+        int customerId = LoopChecker(in, "[0-9]+", "Please enter a number", listCustomers(in, s),
+                "Please select an id from the list of customers");
+
+        System.out.println("Please enter the id of the Desired Location");
+        int locationId = LoopChecker(in, "[0-9]+", "Please enter a number", listLocations(in, s),
+                "Please enter an id from an existing location");
+        System.out.println("Please enter the id of your desired car");
+        int vehicle_id = LoopChecker(in, "[0-9]+", "Please enter a number", listCars(in, s, locationId),
+                "Please enter an Id from the list of cars");
+
+        System.out.println("Please enter the date of the desired reservation");
+        String date = RegexChecker(in, "^([0-2][0-9]||3[0-1])/(0[0-9]||1[0-2])/([0-9][0-9])?[0-9][0-9]$",
+                "Please enter the date in the format of dd/mm/yy");
+
+        try {
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("There was a problem with adding a reservation");
+        }
     }
 }
+
+/*
+ * 
+ * add reservaition
+ * list reservations
+ * same code as rentals
+ */
