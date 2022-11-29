@@ -24,6 +24,15 @@ Once running the user will be prompted for their username and password to edgar1
   * Script used to quickly recompile and run interface for development.
 * pab425.jar
   * Most current jar file, can be used to run most recent compilation of java files
+* DataGeneration
+   * Create Tables.sql
+      * Used to create new tables
+   * New Data.sql
+      * Used to insert data into tables to start testing interface.
+      * Note that unless the tables are empty conflictions of data will be created.
+      * Opted to use incremental format to test singular inserts when testing primary/foreign key relationships and joins
+   * Remove Data.sql
+      * Drops all created tables
 
 ## Commands in Interface
 1. Management
