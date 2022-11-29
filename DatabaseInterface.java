@@ -99,7 +99,7 @@ public class DatabaseInterface {
     }
 
     public static void PrintManagementMenu() {
-        System.out.println("\nEnter a Management Option[1-8]:");
+        System.out.println("\n\nEnter a Management Option[1-8]:");
         System.out.println(" [1]: Move Car To Different Location");
         System.out.println(" [2]: Create New Discount Group");
         System.out.println(" [3]: View all Charges");
@@ -111,7 +111,7 @@ public class DatabaseInterface {
     }
 
     public static void PrintEmployeeMenu() {
-        System.out.println("\nEnter an Employee Option[1-4]:");
+        System.out.println("\n\nEnter an Employee Option[1-4]:");
         System.out.println(" [1]: Create New Customer");
         System.out.println(" [2]: Create Rental For Customer");
         System.out.println(" [3]: Return Car");
@@ -119,7 +119,7 @@ public class DatabaseInterface {
     }
 
     public static void PrintCustomerMenu() {
-        System.out.println("\nEnter an Customer Option[1-4]:");
+        System.out.println("\n\nEnter an Customer Option[1-4]:");
         System.out.println(" [1]: View Avalibile Cars");
         System.out.println(" [2]: Add to discount group");
         System.out.println(" [3]: Reserve Car");
@@ -154,6 +154,10 @@ public class DatabaseInterface {
                     }
 
                     List carIds = listCars(in, s, id);
+                    if (carIds.size() == 0) {
+                        return;
+                    }
+
                     System.out.println("\n Please enter the id of the car you would like to move");
                     int carId = LoopChecker(in, "[0-9]+", "Please enter a number", carIds,
                             "Please enter an id from the list of cars");
@@ -846,10 +850,3 @@ public class DatabaseInterface {
         }
     }
 }
-
-/*
- * 
- * add reservaition
- * list reservations
- * same code as rentals
- */
