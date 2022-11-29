@@ -135,3 +135,9 @@ and
 
 Although join operations and nested subquerries are relatively trivial operations, it goes to show how effectively the db was designed. 
 
+## References
+The thing I referenced most through this process was the Oracle DB documentation:
+https://docs.oracle.com/en/database/  
+
+
+
