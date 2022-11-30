@@ -1,6 +1,6 @@
 # CSE 241 Final Project-Paolo Bartolucci
 ## How to run
-Upon unzip of folder the Interface can be initiated by running `java -jar xyz123.jar` or simply run `sh run.sh` within the directory. 
+Upon unzip of folder the Interface can be initiated by running `java -jar pab425.jar` or simply run `sh run.sh` within the directory. 
 
 Once running the user will be prompted for their username and password to edgar1. When entered, access to the interface will be granted.
 
