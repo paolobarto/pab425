@@ -11,30 +11,27 @@ public class DatabaseInterface {
 
         Scanner in = new Scanner(System.in);
         try {
-            // boolean correctPasswordEntered = false;
-            // Connection con = null;
-            // while (!correctPasswordEntered) {
+            boolean correctPasswordEntered = false;
+            Connection con = null;
+            while (!correctPasswordEntered) {
 
-            // System.out.println("Please input your Oracle username on Edgar1:");
-            // String user_name = in.nextLine();
+                System.out.println("Please input your Oracle username on Edgar1:");
+                String user_name = in.nextLine();
 
-            // System.out.println("Please input your Oracle password on Edgar1:");
-            // // designed for inputting password without displaying the password:
-            // Console console = System.console();
-            // char[] pwd = console.readPassword();
-            // try {
-            // con =
-            // DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241",
-            // user_name,
-            // new String(pwd));
-            // correctPasswordEntered = true;
-            // } catch (Exception badLogin) {
-            // System.out.println("Incorrect login, try again.");
-            // continue;
-            // }
-            // }
-            Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241",
-                    "pab425", "PBartolucci2001*");
+                System.out.println("Please input your Oracle password on Edgar1:");
+                // designed for inputting password without displaying the password:
+                Console console = System.console();
+                char[] pwd = console.readPassword();
+                try {
+                    con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241",
+                            user_name,
+                            new String(pwd));
+                    correctPasswordEntered = true;
+                } catch (Exception badLogin) {
+                    System.out.println("Incorrect login, try again.");
+                    continue;
+                }
+            }
 
             boolean inInterface = true;
             Statement s = con.createStatement();
