@@ -15,10 +15,10 @@ public class DatabaseInterface {
             Connection con = null;
             while (!correctPasswordEntered) {
 
-                System.out.println("Please input your Oracle username on Edgar1:");
+                System.out.println("Please input your Oracle username on the Hurtz DataBase:");
                 String user_name = in.nextLine();
 
-                System.out.println("Please input your Oracle password on Edgar1:");
+                System.out.println("Please input your Oracle password on the Hurtz Database:");
                 // designed for inputting password without displaying the password:
                 Console console = System.console();
                 char[] pwd = console.readPassword();
